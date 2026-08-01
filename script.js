@@ -85,6 +85,28 @@
   /* ── Carousel ── */
   const carousel = document.getElementById('carousel');
   const slides = carousel ? carousel.querySelectorAll('.carousel-slide') : [];
+
+  // Fallback for missing images in carousel
+  slides.forEach(slide => {
+    const img = slide.querySelector('.slide-image');
+    if (img) {
+      img.addEventListener('error', () => {
+        img.style.display = 'none';
+        const wrapper = img.closest('.slide-image-wrapper');
+        if (wrapper) {
+          wrapper.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+          wrapper.style.display = 'flex';
+          wrapper.style.alignItems = 'center';
+          wrapper.style.justifyContent = 'center';
+          const placeholder = document.createElement('div');
+          placeholder.textContent = '🖼️';
+          placeholder.style.fontSize = '3rem';
+          placeholder.style.opacity = '0.3';
+          wrapper.appendChild(placeholder);
+        }
+      });
+    }
+  });
   const dots = document.querySelectorAll('.dot');
   const prevBtn = document.getElementById('carouselPrev');
   const nextBtn = document.getElementById('carouselNext');
@@ -251,6 +273,95 @@
     });
   });
 
+  /* ── Roblox Stats Canvas ── */
+  (function drawRobloxStats() {
+    const statsCanvas = document.getElementById('robloxStats');
+    if (!statsCanvas) return;
+
+    const ctx = statsCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = statsCanvas.getBoundingClientRect();
+    statsCanvas.width = rect.width * dpr;
+    statsCanvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const W = rect.width;
+    const H = rect.height;
+
+    // Background
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#1a1a2e');
+    grad.addColorStop(1, '#16213e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Title
+    ctx.fillStyle = '#fff';
+    const titleFont = 'bold ' + (W * 0.045) + 'px Inter, sans-serif';
+    ctx.font = titleFont;
+    ctx.textAlign = 'left';
+    const titleText = 'Cascade Piano🎹';
+    const titleX = W * 0.04;
+    const titleY = H * 0.14;
+    const titleWidth = ctx.measureText(titleText).width;
+    ctx.fillText(titleText, titleX, titleY);
+
+    // Subtitle
+    ctx.fillStyle = '#B3B3B3';
+    ctx.font = (W * 0.022) + 'px Inter, sans-serif';
+    ctx.fillText('От: Arcane Rebels (Community)', W * 0.04, H * 0.24);
+
+    // Stats cards
+    const cards = [
+      { label: 'Игроки онлайн', value: '18', unit: 'чел.', color: '#1DB954' },
+      { label: 'Всего визитов', value: '1.19M', unit: 'визитов', color: '#1DB954' },
+      { label: 'Длина сессии', value: '5.29', unit: 'мин.', color: '#1DB954' },
+      { label: 'Рейтинг', value: '82.1', unit: '%', color: '#1DB954' },
+    ];
+
+    const cardW = W * 0.2;
+    const cardH = H * 0.38;
+    const startX = W * 0.04;
+    const gap = (W - startX * 2 - cardW * 4) / 3;
+    const cardY = H * 0.34;
+
+    cards.forEach((card, i) => {
+      const x = startX + i * (cardW + gap);
+
+      // Card bg
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.beginPath();
+      ctx.roundRect(x, cardY, cardW, cardH, 8);
+      ctx.fill();
+
+      // Top accent line
+      ctx.fillStyle = card.color;
+      ctx.fillRect(x, cardY, cardW, 3);
+
+      // Label
+      ctx.fillStyle = '#B3B3B3';
+      ctx.font = (W * 0.018) + 'px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(card.label, x + cardW / 2, cardY + cardH * 0.28);
+
+      // Value
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold ' + (W * 0.055) + 'px Inter, sans-serif';
+      ctx.fillText(card.value, x + cardW / 2, cardY + cardH * 0.58);
+
+      // Unit
+      ctx.fillStyle = '#6A6A6A';
+      ctx.font = (W * 0.016) + 'px Inter, sans-serif';
+      ctx.fillText(card.unit, x + cardW / 2, cardY + cardH * 0.78);
+    });
+
+    // Release date
+    ctx.fillStyle = '#6A6A6A';
+    ctx.font = (W * 0.018) + 'px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('Релиз: 19 апреля 2026', W * 0.96, H * 0.88);
+  })();
+
   /* ── Parallax effect for hero ── */
   const heroContent = document.querySelector('.hero-content');
   if (heroContent) {
@@ -263,5 +374,99 @@
       }
     });
   }
+
+  /* ── Lightbox / Image Zoom ── */
+  const lightboxOverlay = document.createElement('div');
+  lightboxOverlay.className = 'lightbox-overlay';
+  lightboxOverlay.innerHTML = `
+    <div class="lightbox-backdrop"></div>
+    <img class="lightbox-img" src="" alt="">
+    <button class="lightbox-close" aria-label="Закрыть">×</button>
+    <div class="lightbox-controls">
+      <button class="lightbox-btn" id="lbZoomOut" aria-label="Уменьшить">−</button>
+      <span class="lightbox-zoom">100%</span>
+      <button class="lightbox-btn" id="lbZoomIn" aria-label="Увеличить">+</button>
+    </div>
+  `;
+  document.body.appendChild(lightboxOverlay);
+
+  const lbImg = lightboxOverlay.querySelector('.lightbox-img');
+  const lbZoomText = lightboxOverlay.querySelector('.lightbox-zoom');
+  let scale = 1;
+  let isDragging = false;
+  let startX, startY, translateX = 0, translateY = 0;
+
+  function updateTransform() {
+    lbImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    lbZoomText.textContent = Math.round(scale * 100) + '%';
+  }
+
+  // Open on click
+  document.querySelectorAll('.slide-image').forEach(img => {
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', () => {
+      lbImg.src = img.src;
+      lbImg.draggable = false;
+      scale = 1;
+      translateX = 0;
+      translateY = 0;
+      updateTransform();
+      lightboxOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  // Close
+  function closeLightbox() {
+    lightboxOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  lightboxOverlay.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
+  lightboxOverlay.querySelector('.lightbox-backdrop').addEventListener('click', closeLightbox);
+
+  // Zoom buttons
+  lightboxOverlay.querySelector('#lbZoomIn').addEventListener('click', () => {
+    scale = Math.min(scale + 0.25, 4);
+    updateTransform();
+  });
+  lightboxOverlay.querySelector('#lbZoomOut').addEventListener('click', () => {
+    scale = Math.max(scale - 0.25, 0.25);
+    updateTransform();
+  });
+
+  // Mouse wheel zoom
+  lightboxOverlay.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    scale = Math.max(0.25, Math.min(4, scale + (e.deltaY > 0 ? -0.1 : 0.1)));
+    updateTransform();
+  }, { passive: false });
+
+  // Drag to pan (only when zoomed)
+  lbImg.addEventListener('mousedown', (e) => {
+    if (scale <= 1) return;
+    isDragging = true;
+    startX = e.clientX - translateX;
+    startY = e.clientY - translateY;
+    lbImg.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    translateX = e.clientX - startX;
+    translateY = e.clientY - startY;
+    updateTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    lbImg.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (!lightboxOverlay.classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+  });
 
 })();

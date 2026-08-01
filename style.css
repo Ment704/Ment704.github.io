@@ -355,18 +355,57 @@ body {
   transform: translateY(-4px);
 }
 
-.project-image-wrapper {
+/* Image wrappers - unified */
+.project-image-wrapper,
+.slide-image-wrapper,
+.profile-image-wrapper {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  height: 0;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
 }
 
-.project-image {
-  width: 100%;
+/* Stats wrapper uses aspect-ratio instead of padding hack */
+.stats-wrapper {
   height: auto;
+  padding-top: 0;
+  aspect-ratio: 16 / 9;
+}
+
+.project-image-wrapper > *,
+.slide-image-wrapper > *,
+.profile-image-wrapper > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Images inside wrappers */
+.project-image,
+.slide-image,
+.profile-image {
+  width: 100%;
+  height: 100%;
   display: block;
-  aspect-ratio: 16/9;
   object-fit: cover;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  object-position: top;
+}
+
+/* Canvas stats - separate, no aspect-ratio on wrapper */
+.stats-wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.stats-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .project-overlay {
@@ -502,19 +541,6 @@ body {
 @keyframes fadeSlide {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
-}
-
-.slide-image-wrapper {
-  position: relative;
-  overflow: hidden;
-}
-
-.slide-image {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  display: block;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
 .slide-content {
@@ -677,14 +703,6 @@ body {
   overflow: hidden;
   box-shadow: var(--shadow);
   text-align: center;
-}
-
-.profile-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  display: block;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
 .profile-info {
@@ -1102,14 +1120,121 @@ body {
     padding: 0 16px;
   }
 
-  .slide-image {
-    height: 200px;
-  }
-
   .project-info,
   .slide-content,
   .bot-card,
   .soft-card {
     padding: 20px;
   }
+}
+
+/* ── Lightbox ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms ease, visibility 300ms ease;
+}
+
+.lightbox-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.lightbox-img {
+  position: relative;
+  z-index: 1;
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: grab;
+  transition: transform 100ms ease-out;
+  user-select: none;
+  -webkit-user-drag: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease;
+}
+
+.lightbox-close:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+.lightbox-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 500px;
+}
+
+.lightbox-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease;
+}
+
+.lightbox-btn:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+.lightbox-zoom {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
